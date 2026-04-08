@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>בדק בית - דירה 45 פינסקר</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #fff; --primary: #2563eb; --primary-light: #dbeafe;
+    --success: #16a34a; --success-light: #dcfce7; --warning: #f59e0b; --warning-light: #fef3c7;
+    --danger: #dc2626; --danger-light: #fee2e2; --text: #1e293b; --muted: #64748b;
+    --border: #e2e8f0; --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1);
+    --sev-critical: #991b1b; --sev-critical-bg: #fef2f2;
+    --sev-high: #c2410c; --sev-high-bg: #fff7ed;
+    --sev-medium: #a16207; --sev-medium-bg: #fefce8;
+    --sev-low: #15803d; --sev-low-bg: #f0fdf4;
+    --sev-cosmetic: #6b7280; --sev-cosmetic-bg: #f9fafb;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+
+  /* HEADER */
+  .header { background:linear-gradient(135deg,#1e40af,#2563eb,#3b82f6); color:#fff; padding:16px; position:sticky; top:0; z-index:100; box-shadow:0 4px 12px rgba(37,99,235,.3); }
+  .header h1 { font-size:1.15rem; font-weight:700; }
+  .header .sub { font-size:.75rem; opacity:.85; margin-top:2px; }
+  .prog-wrap { background:rgba(255,255,255,.2); border-radius:20px; height:6px; margin-top:12px; overflow:hidden; }
+  .prog-bar { height:100%; border-radius:20px; background:linear-gradient(90deg,#34d399,#10b981); transition:width .5s; }
+  .prog-stats { display:flex; justify-content:space-between; margin-top:6px; font-size:.72rem; opacity:.9; }
+  .badges { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .badge { display:flex; align-items:center; gap:4px; background:rgba(255,255,255,.15); padding:3px 10px; border-radius:16px; font-size:.7rem; }
+  .dot { width:7px; height:7px; border-radius:50%; }
+  .dot.p { background:#fbbf24; } .dot.d { background:#34d399; } .dot.h { background:#fb923c; }
+
+  /* CONTROLS */
+  .controls { padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:88px; z-index:99; display:flex; flex-direction:column; gap:8px; }
+  .search { width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:.82rem; font-family:inherit; direction:rtl; background:var(--bg); }
+  .search:focus { outline:none; border-color:var(--primary); background:var(--card); }
+  .toggle-row { display:flex; background:var(--bg); border-radius:8px; padding:2px; gap:2px; }
+  .t-btn { flex:1; padding:6px 8px; border:none; background:transparent; border-radius:6px; cursor:pointer; font-size:.75rem; font-weight:600; color:var(--muted); transition:all .2s; font-family:inherit; }
+  .t-btn.active { background:var(--primary); color:#fff; }
+  .scroll-row { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
+  .scroll-row::-webkit-scrollbar { height:0; }
+  .chip { white-space:nowrap; padding:4px 10px; border-radius:16px; border:1.5px solid var(--border); background:var(--card); cursor:pointer; font-size:.7rem; font-weight:600; color:var(--muted); transition:all .2s; font-family:inherit; }
+  .chip.on { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+  .chip .cnt { display:inline-block; background:var(--border); color:var(--muted); padding:0 5px; border-radius:8px; font-size:.65rem; margin-right:3px; }
+  .chip.on .cnt { background:var(--primary); color:#fff; }
+
+  .sev-chips { display:flex; gap:4px; flex-wrap:wrap; }
+  .sev-chip { padding:3px 10px; border-radius:16px; border:1.5px solid var(--border); background:var(--card); cursor:pointer; font-size:.68rem; font-weight:600; font-family:inherit; transition:all .2s; white-space:nowrap; }
+  .sev-chip.on-all { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+  .sev-chip.on-critical { background:var(--sev-critical-bg); border-color:var(--sev-critical); color:var(--sev-critical); }
+  .sev-chip.on-high { background:var(--sev-high-bg); border-color:var(--sev-high); color:var(--sev-high); }
+  .sev-chip.on-medium { background:var(--sev-medium-bg); border-color:var(--sev-medium); color:var(--sev-medium); }
+  .sev-chip.on-low { background:var(--sev-low-bg); border-color:var(--sev-low); color:var(--sev-low); }
+  .sev-chip.on-cosmetic { background:var(--sev-cosmetic-bg); border-color:var(--sev-cosmetic); color:var(--sev-cosmetic); }
+
+  .status-row { display:flex; gap:4px; flex-wrap:wrap; }
+  .st-chip { padding:3px 10px; border-radius:16px; border:1.5px solid var(--border); background:var(--card); cursor:pointer; font-size:.68rem; font-weight:600; font-family:inherit; transition:all .2s; white-space:nowrap; }
+  .st-chip.on-all { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+  .st-chip.on-pending { background:var(--danger-light); border-color:var(--danger); color:var(--danger); }
+  .st-chip.on-done { background:var(--success-light); border-color:var(--success); color:var(--success); }
+  .st-chip.on-partial { background:var(--warning-light); border-color:var(--warning); color:var(--warning); }
+
+  /* CONTENT */
+  .content { padding:12px 16px 120px; max-width:900px; margin:0 auto; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+  .card { background:var(--card); border-radius:var(--radius); padding:12px 8px; text-align:center; border:1px solid var(--border); box-shadow:var(--shadow); }
+  .card .n { font-size:1.5rem; font-weight:800; line-height:1; }
+  .card .l { font-size:.65rem; color:var(--muted); margin-top:3px; font-weight:500; }
+  .card.pc .n { color:var(--danger); } .card.dc .n { color:var(--success); } .card.hc .n { color:var(--warning); }
+
+  /* SECTIONS */
+  .sec { margin-bottom:14px; }
+  .sec-h { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card); border-radius:var(--radius) var(--radius) 0 0; border:1px solid var(--border); border-bottom:2px solid var(--primary); cursor:pointer; user-select:none; }
+  .sec-h:hover { background:#f8fafc; }
+  .sec-t { font-size:.88rem; font-weight:700; display:flex; align-items:center; gap:6px; }
+  .sec-c { font-size:.7rem; color:var(--muted); background:var(--bg); padding:2px 8px; border-radius:10px; }
+  .sec-arr { transition:transform .3s; color:var(--muted); font-size:.8rem; }
+  .sec-arr.hide { transform:rotate(180deg); }
+  .d-list { border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); overflow:hidden; }
+
+  .area-sec { margin-bottom:12px; }
+  .area-h { display:flex; align-items:center; gap:6px; padding:8px 14px; background:linear-gradient(135deg,#7c3aed10,#7c3aed05); border:1px solid #7c3aed30; border-radius:var(--radius) var(--radius) 0 0; cursor:pointer; user-select:none; }
+  .area-h .a-name { font-weight:700; font-size:.84rem; color:#5b21b6; }
+  .area-h .a-cnt { margin-right:auto; font-size:.68rem; background:#7c3aed20; color:#7c3aed; padding:2px 7px; border-radius:8px; }
+  .area-d { border:1px solid #7c3aed30; border-top:none; border-radius:0 0 var(--radius) var(--radius); overflow:hidden; }
+
+  /* DEFECT ITEM */
+  .di { padding:12px 14px; background:var(--card); border-bottom:1px solid var(--border); }
+  .di:last-child { border-bottom:none; }
+  .di-main { display:flex; align-items:flex-start; gap:10px; cursor:pointer; }
+  .di-ico { width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.75rem; margin-top:1px; cursor:pointer; transition:all .2s; }
+  .di-ico.pending { background:var(--danger-light); color:var(--danger); border:2px solid var(--danger); }
+  .di-ico.done { background:var(--success-light); color:var(--success); border:2px solid var(--success); }
+  .di-ico.partial { background:var(--warning-light); color:var(--warning); border:2px solid var(--warning); }
+  .di-body { flex:1; min-width:0; }
+  .di-txt { font-size:.82rem; font-weight:500; line-height:1.4; }
+  .di-txt.done { text-decoration:line-through; color:var(--muted); }
+  .di-tags { display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; }
+  .tag { font-size:.62rem; padding:2px 7px; border-radius:5px; font-weight:600; }
+  .tag.area { background:#ede9fe; color:#7c3aed; }
+  .tag.cat { background:#e0f2fe; color:#0369a1; }
+  .tag.img { background:#fce7f3; color:#be185d; cursor:pointer; }
+  .tag.img:hover { background:#fbcfe8; }
+  .tag.sev-critical { background:var(--sev-critical-bg); color:var(--sev-critical); border:1px solid var(--sev-critical); }
+  .tag.sev-high { background:var(--sev-high-bg); color:var(--sev-high); border:1px solid var(--sev-high); }
+  .tag.sev-medium { background:var(--sev-medium-bg); color:var(--sev-medium); border:1px solid var(--sev-medium); }
+  .tag.sev-low { background:var(--sev-low-bg); color:var(--sev-low); border:1px solid var(--sev-low); }
+  .tag.sev-cosmetic { background:var(--sev-cosmetic-bg); color:var(--sev-cosmetic); border:1px solid var(--sev-cosmetic); }
+  .di-note { margin-top:4px; font-size:.72rem; color:var(--muted); font-style:italic; }
+  .di-expand { margin-top:8px; }
+  .di-actions { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px; }
+  .abtn { padding:5px 12px; border-radius:7px; border:1.5px solid var(--border); background:var(--card); cursor:pointer; font-size:.7rem; font-weight:600; transition:all .2s; font-family:inherit; }
+  .abtn:hover { transform:translateY(-1px); box-shadow:var(--shadow); }
+  .abtn.tr { border-color:var(--success); color:var(--success); }
+  .abtn.tr:hover,.abtn.tr.on { background:var(--success); color:#fff; }
+  .abtn.pt { border-color:var(--warning); color:var(--warning); }
+  .abtn.pt:hover,.abtn.pt.on { background:var(--warning); color:#fff; }
+  .abtn.rs { border-color:var(--muted); color:var(--muted); }
+  .abtn.rs:hover { background:var(--muted); color:#fff; }
+  .abtn.im { border-color:#be185d; color:#be185d; }
+  .abtn.im:hover { background:#be185d; color:#fff; }
+  .sev-select { padding:4px 8px; border-radius:6px; border:1.5px solid var(--border); font-size:.72rem; font-family:inherit; cursor:pointer; direction:rtl; background:var(--card); }
+  .sev-select:focus { outline:none; border-color:var(--primary); }
+  .note-in { width:100%; padding:6px 10px; border:1.5px solid var(--border); border-radius:7px; font-size:.78rem; font-family:inherit; resize:none; direction:rtl; margin-top:4px; }
+  .note-in:focus { outline:none; border-color:var(--primary); }
+
+  /* THUMBNAILS */
+  .thumbs { display:flex; gap:6px; margin-top:8px; overflow-x:auto; padding-bottom:4px; }
+  .thumb { width:120px; min-width:120px; border-radius:6px; overflow:hidden; border:1px solid var(--border); cursor:pointer; transition:transform .15s; }
+  .thumb:hover { transform:scale(1.03); }
+  .thumb img { width:100%; display:block; }
+  .thumb .th-lbl { font-size:.6rem; text-align:center; padding:3px; background:var(--bg); color:var(--muted); }
+
+  /* MODAL */
+  .mo { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:none; align-items:center; justify-content:center; padding:12px; backdrop-filter:blur(4px); }
+  .mo.show { display:flex; }
+  .mo-box { background:var(--card); border-radius:14px; max-width:90vw; width:650px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); }
+  .mo-head { padding:16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .mo-head h3 { font-size:.9rem; flex:1; margin-left:12px; }
+  .mo-close { width:30px; height:30px; border-radius:50%; border:none; background:var(--bg); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  .mo-body { padding:16px; }
+  .mo-body img { width:100%; border-radius:6px; }
+  .mo-imgs { display:flex; flex-direction:column; gap:12px; }
+  .mo-pg { border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .mo-pg img { width:100%; display:block; }
+  .mo-pg .pg-lbl { padding:6px 10px; font-size:.75rem; color:var(--muted); font-weight:600; background:var(--bg); text-align:center; }
+
+  /* EMPTY */
+  .empty { text-align:center; padding:50px 20px; color:var(--muted); }
+  .empty .ei { font-size:2.5rem; margin-bottom:10px; }
+
+  /* FABs */
+  .fab-row { position:fixed; bottom:16px; left:16px; display:flex; gap:10px; z-index:50; }
+  .fab { width:48px; height:48px; border-radius:50%; color:#fff; border:none; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:transform .2s; box-shadow:0 4px 12px rgba(0,0,0,.2); }
+  .fab:hover { transform:scale(1.1); }
+  .fab.exp { background:#217346; }
+  .fab.imp { background:#2563eb; }
+  .fab.rst { background:var(--danger); }
+  .fab-label { position:absolute; bottom:56px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; padding:3px 8px; border-radius:5px; font-size:.65rem; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .fab:hover .fab-label { opacity:1; }
+
+  .hidden-input { display:none; }
+
+  /* RESPONSIVE */
+  @media (max-width:600px) {
+    .header { padding:12px; }
+    .header h1 { font-size:1rem; }
+    .header .sub { font-size:.68rem; }
+    .controls { padding:8px 12px; top:76px; gap:6px; }
+    .content { padding:10px 12px 120px; }
+    .cards { gap:6px; }
+    .card { padding:10px 6px; }
+    .card .n { font-size:1.2rem; }
+    .card .l { font-size:.6rem; }
+    .di { padding:10px 12px; }
+    .di-txt { font-size:.78rem; }
+    .tag { font-size:.58rem; padding:1px 5px; }
+    .t-btn { font-size:.68rem; padding:5px 4px; }
+    .chip { font-size:.64rem; padding:3px 8px; }
+    .sev-chip, .st-chip { font-size:.62rem; padding:2px 8px; }
+    .thumb { width:90px; min-width:90px; }
+    .abtn { font-size:.64rem; padding:4px 10px; }
+    .mo-box { width:95vw; }
+    .fab { width:42px; height:42px; font-size:1rem; }
+    .fab-row { bottom:12px; left:12px; gap:8px; }
+  }
+
+  @media (max-width:380px) {
+    .header h1 { font-size:.9rem; }
+    .badges { gap:4px; }
+    .badge { font-size:.62rem; padding:2px 6px; }
+    .cards { grid-template-columns:repeat(3,1fr); }
+    .card .n { font-size:1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>בדק בית - דירה 45 פינסקר</h1>
+  <div class="sub">יהודה לייב פינסקר 47 א', ראשון לציון | משפ' אזולאי</div>
+  <div class="prog-wrap"><div class="prog-bar" id="pbar"></div></div>
+  <div class="prog-stats"><span id="pPct">0%</span><span id="pCnt">0/0</span></div>
+  <div class="badges">
+    <div class="badge"><div class="dot p"></div><span id="sPend">0</span></div>
+    <div class="badge"><div class="dot d"></div><span id="sDone">0</span></div>
+    <div class="badge"><div class="dot h"></div><span id="sPart">0</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <input type="text" class="search" id="searchBox" placeholder="חיפוש לקויה...">
+  <div class="toggle-row">
+    <button class="t-btn active" data-v="category" onclick="setView('category')">קטגוריה</button>
+    <button class="t-btn" data-v="area" onclick="setView('area')">אזור</button>
+    <button class="t-btn" data-v="severity" onclick="setView('severity')">חומרה</button>
+    <button class="t-btn" data-v="all" onclick="setView('all')">הכל</button>
+  </div>
+  <div class="scroll-row" id="filterRow"></div>
+  <div class="sev-chips" id="sevFilter">
+    <button class="sev-chip on-all" data-s="all" onclick="setSevFilter('all')">הכל</button>
+    <button class="sev-chip" data-s="critical" onclick="setSevFilter('critical')">קריטי</button>
+    <button class="sev-chip" data-s="high" onclick="setSevFilter('high')">גבוה</button>
+    <button class="sev-chip" data-s="medium" onclick="setSevFilter('medium')">בינוני</button>
+    <button class="sev-chip" data-s="low" onclick="setSevFilter('low')">נמוך</button>
+    <button class="sev-chip" data-s="cosmetic" onclick="setSevFilter('cosmetic')">קוסמטי</button>
+  </div>
+  <div class="status-row" id="statusFilter">
+    <button class="st-chip on-all" data-s="all" onclick="setStatusFilter('all')">הכל</button>
+    <button class="st-chip" data-s="pending" onclick="setStatusFilter('pending')">ממתינות</button>
+    <button class="st-chip" data-s="done" onclick="setStatusFilter('done')">טופלו</button>
+    <button class="st-chip" data-s="partial" onclick="setStatusFilter('partial')">חלקית</button>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="fab-row">
+  <button class="fab exp" onclick="exportExcel()"><span class="fab-label">ייצוא לאקסל</span>&#128202;</button>
+  <button class="fab imp" onclick="document.getElementById('importFile').click()"><span class="fab-label">ייבוא מאקסל</span>&#128229;</button>
+  <button class="fab rst" onclick="resetAll()"><span class="fab-label">איפוס</span>&#8634;</button>
+</div>
+<input type="file" id="importFile" class="hidden-input" accept=".xlsx,.xls" onchange="importExcel(this)">
+
+<div class="mo" id="imgModal">
+  <div class="mo-box">
+    <div class="mo-head">
+      <h3 id="moTitle">תמונה</h3>
+      <button class="mo-close" onclick="closeMo()">&times;</button>
+    </div>
+    <div class="mo-body" id="moBody"></div>
+  </div>
+</div>
+
+<script>
+const CATS = {
+  flooring:{n:'עבודות ריצוף',i:'🏗️'},ceramic:{n:'חיפוי קרמי',i:'🔲'},paint:{n:'שפכטל וצבע',i:'🎨'},
+  plaster:{n:'שכבת טיח',i:'🧱'},exterior:{n:'ציפוי קירות חוץ',i:'🏢'},windows:{n:'חלונות ואלומיניום',i:'🪟'},
+  doors:{n:'דלתות',i:'🚪'},electrical:{n:'חשמל ומיזוג',i:'⚡'},misc:{n:'שונות',i:'🔧'}
+};
+const AREAS = {
+  entrance:{n:'כניסה לדירה',i:'🚪'},living:{n:'סלון',i:'🛋️'},kitchen:{n:'מטבח',i:'🍳'},
+  hallway:{n:'פרוזדור',i:'🚶'},masterBedroom:{n:'חדר שינה הורים',i:'🛏️'},kidsBedroom:{n:'חדר שינה ילדים',i:'🧒'},
+  safeRoom:{n:'חדר ממ"ד',i:'🛡️'},generalBath:{n:'חדר רחצה כללי',i:'🚿'},masterBath:{n:'חדר רחצה הורים',i:'🛁'},
+  balcony:{n:'מרפסת סלון',i:'🌤️'},laundry:{n:'מסתור כביסה',i:'👕'},exterior:{n:'חוץ',i:'🏠'},
+  general:{n:'כללי',i:'📍'}
+};
+const SEVS = {
+  critical:{n:'קריטי',i:'🔴'},high:{n:'גבוה',i:'🟠'},medium:{n:'בינוני',i:'🟡'},
+  low:{n:'נמוך',i:'🟢'},cosmetic:{n:'קוסמטי',i:'⚪'}
+};
+const STATUS_T = {done:'טופלה',partial:'טופלה חלקית',pending:'ממתינה'};
+const SEV_T = {critical:'קריטי',high:'גבוה',medium:'בינוני',low:'נמוך',cosmetic:'קוסמטי'};
+
+const defects = [
+  {id:1,t:'מילוי רובה לקוי - חלק מהמילוי התפורר, חסר ובגוון לא אחיד',c:'flooring',a:['generalBath','masterBath','balcony','living','kitchen','hallway','masterBedroom','kidsBedroom'],img:'11-12',sev:'medium'},
+  {id:2,t:'השלמת מילוי בחומר גמיש בחיבורי הריצוף והקירות',c:'flooring',a:['balcony','generalBath','masterBath'],img:'11-12',sev:'medium'},
+  {id:3,t:'חיתוך וגימור לקוי של אריחי הריצוף בחיבור סף האלומיניום בכניסה לדירה',c:'flooring',a:['entrance'],img:'11-12',sev:'medium'},
+  {id:4,t:'חיתוך וגימור לקוי בחיבור סף האלומיניום בכניסה לחדר רחצה כללי',c:'flooring',a:['generalBath'],img:'11-12',sev:'medium'},
+  {id:5,t:'חיתוך וגימור לקוי בחיבור סף האלומיניום בכניסה לחדר רחצה הורים',c:'flooring',a:['masterBath'],img:'11-12',sev:'medium'},
+  {id:6,t:'חוסר מישוריות ואחידות בהתקנת הפנלים ובפרט בחיבור משקופי הדלתות',c:'flooring',a:['masterBedroom','kidsBedroom','safeRoom'],img:'11-12',sev:'medium'},
+  {id:7,t:'חיתוך וגימור לקוי של אריחי הריצוף סביב פתח הניקוז בתא רחצה הורים',c:'flooring',a:['masterBath'],img:'11-12',sev:'medium'},
+  {id:8,t:'יש להנמיך את פתח הניקוז בתא רחצה הורים - ישנן שלוליות',c:'flooring',a:['masterBath'],sev:'high'},
+  {id:9,t:'שיפועים לקויים, שלוליות ברצפת מרפסת הסלון',c:'flooring',a:['balcony'],sev:'high'},
+  {id:10,t:'פגמים חיצוניים ע"ג אריחי ריצוף - מרפסת סלון (11 יח\')',c:'flooring',a:['balcony'],img:'11-12',sev:'medium'},
+  {id:11,t:'פגם באריח ריצוף - כניסה לדירה (1 יח\')',c:'flooring',a:['entrance'],img:'11-12',sev:'low'},
+  {id:12,t:'פגם באריח ריצוף - חדר רחצה הורים (1 יח\')',c:'flooring',a:['masterBath'],img:'11-12',sev:'low'},
+  {id:13,t:'פגמים באריחי ריצוף - פרוזדור (2 יח\')',c:'flooring',a:['hallway'],img:'11-12',sev:'low'},
+  {id:14,t:'פגם בפנל - חדר שינה הורים (1 יח\')',c:'flooring',a:['masterBedroom'],img:'11-12',sev:'low'},
+  {id:15,t:'השלמת ניקיון לצורך מסירת הדירה',c:'flooring',a:['general'],sev:'cosmetic'},
+  {id:16,t:'רצפת חדר ממ"ד נבדקה חלקית',c:'flooring',a:['safeRoom'],sev:'medium'},
+
+  {id:17,t:'תיקוני והשלמת מילוי רובה, מילוי בחומר גמיש במטבח',c:'ceramic',a:['kitchen'],img:'15-16',sev:'medium'},
+  {id:18,t:'תיקוני והשלמת מילוי רובה בחיפוי קירות חדרי הרחצה',c:'ceramic',a:['generalBath','masterBath'],img:'15-16',sev:'medium'},
+  {id:19,t:'חוסר מישוריות ואחידות בהתקנת ספי האלומיניום בחדרי הרחצה',c:'ceramic',a:['generalBath','masterBath'],img:'15-16',sev:'medium'},
+  {id:20,t:'חיתוכי יתר, חוסר מישוריות בהתקנת אריחי חיפוי בחדר רחצה כללי ובפרט בשורות העליונות',c:'ceramic',a:['generalBath'],img:'15-16',sev:'medium'},
+  {id:21,t:'חיתוכי יתר, חוסר מישוריות בתחתית קירות תא רחצה הורים',c:'ceramic',a:['masterBath'],img:'15-16',sev:'medium'},
+  {id:22,t:'חיתוכי יתר, חוסר מישוריות בהתקנת אריחי חיפוי בחדר רחצה הורים ובפרט בשורות העליונות',c:'ceramic',a:['masterBath'],img:'15-16',sev:'medium'},
+  {id:23,t:'חיתוכי יתר סביב נקודות המים והחשמל בחדר רחצה כללי',c:'ceramic',a:['generalBath'],img:'15-16',sev:'medium'},
+  {id:24,t:'חוסר מישוריות ואחידות בהתקנת לחצן ההדחה בחדר רחצה הורים',c:'ceramic',a:['masterBath'],img:'15-16',sev:'low'},
+  {id:25,t:'פגמים באריחי החיפוי בחדר רחצה הורים מעל משקוף הדלת (3 יח\')',c:'ceramic',a:['masterBath'],img:'15-16',sev:'medium'},
+  {id:26,t:'ניקיון אריחי חיפוי משאריות רובה וצבע',c:'ceramic',a:['generalBath','masterBath'],sev:'cosmetic'},
+
+  {id:27,t:'תיקוני שפכטל וצבע - חדר ומסתור כביסה',c:'paint',a:['laundry'],img:'20',sev:'low'},
+  {id:28,t:'תיקוני שפכטל וצבע - תקרת מרפסת הסלון',c:'paint',a:['balcony'],img:'20',sev:'low'},
+  {id:29,t:'תיקוני שפכטל וצבע - סביב משקופי הדלתות ומאחורי הדלתות',c:'paint',a:['general'],img:'20',sev:'low'},
+  {id:30,t:'תיקוני שפכטל וצבע - תחתית קירות הפרוזדור והסלון',c:'paint',a:['hallway','living'],img:'20',sev:'low'},
+  {id:31,t:'תיקוני שפכטל וצבע - תחתית וקירות חדרי השינה',c:'paint',a:['masterBedroom','kidsBedroom'],img:'20',sev:'low'},
+  {id:32,t:'תיקוני שפכטל וצבע - סביב אביזרי החשמל והמיזוג',c:'paint',a:['general'],img:'20',sev:'low'},
+  {id:33,t:'תיקוני שפכטל וצבע - תקרת הסלון והמטבח, הכניסה לדירה',c:'paint',a:['living','kitchen','entrance'],img:'20',sev:'low'},
+  {id:34,t:'סדקים וקילופים - גליפי וסביב החלונות',c:'paint',a:['general'],img:'20',sev:'high'},
+  {id:35,t:'תיקוני שפכטל וצבע - מעל החיפוי בחדרי הרחצה',c:'paint',a:['generalBath','masterBath'],img:'20',sev:'low'},
+  {id:36,t:'תיקוני שפכטל וצבע - חיבורי הקירות, חיבורי תקרה וקירות ובפרט בפרוזדור',c:'paint',a:['hallway'],img:'20',sev:'low'},
+  {id:37,t:'תיקוני שפכטל וצבע - סביב הספרינקלרים',c:'paint',a:['general'],sev:'low'},
+  {id:38,t:'תיקוני שפכטל וצבע - חיבורי תקרה וקירות בסלון ובמטבח',c:'paint',a:['living','kitchen'],sev:'low'},
+  {id:39,t:'תיקוני שפכטל וצבע - קירות ותקרת חדר ממ"ד',c:'paint',a:['safeRoom'],img:'20',sev:'low'},
+  {id:40,t:'סדקים סביב חלון חדר הממ"ד',c:'paint',a:['safeRoom'],img:'20',sev:'high'},
+  {id:41,t:'תיקוני שפכטל וצבע - מתחת לכיור המטבח',c:'paint',a:['kitchen'],sev:'cosmetic'},
+  {id:42,t:'צביעת מלבן דלת מתכת - כניסה לחדר ממ"ד + מלבן דלת כניסה ראשית',c:'paint',a:['safeRoom','entrance'],img:'18',sev:'low'},
+
+  {id:43,t:'גליות/חוסר מישוריות - גליף עליון בוויטרינת הסלון',c:'plaster',a:['living'],img:'20',sev:'medium'},
+  {id:44,t:'גליות/חוסר מישוריות - חיבורי סינר הגבס במטבח',c:'plaster',a:['kitchen'],img:'20',sev:'medium'},
+  {id:45,t:'גליות/חוסר מישוריות - חיבורי תקרה וקירות חדרי השינה',c:'plaster',a:['masterBedroom','kidsBedroom'],img:'20',sev:'medium'},
+  {id:46,t:'גליות/חוסר מישוריות - חיבורי תקרה וקירות חדר הממ"ד',c:'plaster',a:['safeRoom'],img:'20',sev:'medium'},
+  {id:47,t:'גליות/חוסר מישוריות - סביב חלון חדר הממ"ד',c:'plaster',a:['safeRoom'],img:'20',sev:'medium'},
+  {id:48,t:'גליות/חוסר מישוריות - חיבורי תקרה וקירות הסלון',c:'plaster',a:['living'],img:'20',sev:'medium'},
+
+  {id:49,t:'כתמים ולכלוכים ע"ג קופינג מעקה בנוי',c:'exterior',a:['balcony'],img:'22-23',sev:'cosmetic'},
+  {id:50,t:'כתמים ולכלוכים ע"ג חיפוי קירות מרפסת הסלון',c:'exterior',a:['balcony'],img:'22-23',sev:'cosmetic'},
+  {id:51,t:'כתמים ולכלוכים ע"ג אדני וגליפי חלונות הדירה',c:'exterior',a:['exterior'],img:'22-23',sev:'cosmetic'},
+  {id:52,t:'פגמים חיצוניים (שברים, כתמים, שריטות) בקופינג מעקה בנוי',c:'exterior',a:['balcony'],img:'22-23',sev:'medium'},
+  {id:53,t:'פגמים חיצוניים בחיפוי קירות מרפסת הסלון',c:'exterior',a:['balcony'],img:'22-23',sev:'medium'},
+  {id:54,t:'פגמים חיצוניים באדני וגליפי החלונות',c:'exterior',a:['exterior'],img:'22-23',sev:'medium'},
+  {id:55,t:'חוסר מישוריות ואחידות התקנת זוויתן עליון חיצוני בוויטרינת הסלון',c:'exterior',a:['living'],img:'22-23',sev:'medium'},
+  {id:56,t:'חוסר מישוריות סביב חלון חדר שינה הורים (בחלקו החיצוני)',c:'exterior',a:['masterBedroom'],sev:'medium'},
+  {id:57,t:'יש לבצע סגירה אסתטית באבני חיפוי קירות החוץ סביב ברגי העיגון',c:'exterior',a:['exterior'],sev:'low'},
+  {id:58,t:'לא בוצע קיבוע מכאני/עיגון ע"י ברגים לאבני הקופינג',c:'exterior',a:['balcony'],sev:'critical'},
+  {id:59,t:'תיקוני כוחלה ומילוי משיקים באבני חיפוי החוץ, בגליפי החלונות',c:'exterior',a:['exterior'],sev:'medium'},
+
+  {id:60,t:'יש לחדש אטימה מסביב לחלונות הדירה - תתכן חדירת מי גשם/רוחות',c:'windows',a:['general'],img:'27-31',sev:'critical'},
+  {id:61,t:'פגמים חיצוניים (שריטות, כתמים, שיירי דבק) - הלבשות, כנפי תריס וויטרינת הסלון',c:'windows',a:['living'],img:'27-31',sev:'low'},
+  {id:62,t:'השלמת ניקיון לזכוכיות ואביזרי האלומיניום בדירה',c:'windows',a:['general'],sev:'cosmetic'},
+  {id:63,t:'פגמים במעקה מרפסת הסלון',c:'windows',a:['balcony'],img:'27-31',sev:'high'},
+  {id:64,t:'שריטות וכתמים בזכוכיות מעקה מרפסת הסלון (4 יח\')',c:'windows',a:['balcony'],img:'27-31',sev:'low'},
+  {id:65,t:'יש לבצע כיווני נעילה ותאום בחלונות הדירה',c:'windows',a:['safeRoom','general'],img:'27-31',sev:'high'},
+  {id:66,t:'יש להוסיף קיבוע/חיזוק לזכוכיות מעקה מרפסת הסלון',c:'windows',a:['balcony'],img:'27-31',sev:'critical'},
+  {id:67,t:'יש להוסיף קיבוע/חיזוק למעקה מרפסת הסלון',c:'windows',a:['balcony'],img:'27-31',sev:'critical'},
+  {id:68,t:'חיבורים לקויים של פרופילים, מרווחים בחיבורי מעקה מרפסת הסלון עם הקירות',c:'windows',a:['balcony'],img:'27-31',sev:'high'},
+  {id:69,t:'תיקוני צבע למסגרת המתכת בחלון חדר הממ"ד',c:'windows',a:['safeRoom'],img:'27-31',sev:'low'},
+  {id:70,t:'השלמת ידית לכנף ברזל ימין בחלון הממ"ד',c:'windows',a:['safeRoom'],img:'27-31',sev:'high'},
+  {id:71,t:'שיפוע לקוי/בלתי תקין באדן חלון חדר ממ"ד',c:'windows',a:['safeRoom'],sev:'high'},
+  {id:72,t:'יש לבצע ניקיון לכיס חלון חדר הממ"ד',c:'windows',a:['safeRoom'],sev:'cosmetic'},
+  {id:73,t:'שקיעה במרכז ארגז תריס וויטרינת הסלון',c:'windows',a:['living'],img:'27-31',sev:'medium'},
+  {id:74,t:'חוסר מישוריות, מרווחים לא אחידים בחלון חדר שינה ילדים',c:'windows',a:['kidsBedroom'],img:'27-31',sev:'medium'},
+  {id:75,t:'יש לחדש/לבצע מילוי במרק אלסטי סביב הלבשות החלונות',c:'windows',a:['general'],sev:'medium'},
+  {id:76,t:'חלון חדר שינה ילדים חסום ע"י עמוד/קיר גבס - יש לבצע שינויים',c:'windows',a:['kidsBedroom'],img:'27-31',sev:'critical'},
+
+  {id:77,t:'דלת חדר הממ"ד אינה יציבה, נוטה להיסגר מעצמה',c:'doors',a:['safeRoom'],img:'33',sev:'high'},
+  {id:78,t:'יש לחזק/לקבע את פרזול הדלתות',c:'doors',a:['general'],sev:'medium'},
+  {id:79,t:'כתמי חלודה בתחתית משקוף דלת חדר הממ"ד',c:'doors',a:['safeRoom'],img:'33',sev:'medium'},
+  {id:80,t:'נועל עליון בדלת הכניסה חוסם את הגישה לאינטרקום - יש לבצע שינויים',c:'doors',a:['entrance'],img:'33',sev:'high'},
+  {id:81,t:'טרם הותקנו/נמסרו מעצורי הדלתות',c:'doors',a:['general'],sev:'medium'},
+  {id:82,t:'מילוי במרק אלסטי סביב משקופי דלתות הדירה והלבשות',c:'doors',a:['general'],img:'33',sev:'low'},
+
+  {id:83,t:'יש לוודא הכנות תקינות ליחידות המיזוג בדירה',c:'electrical',a:['general'],img:'35',sev:'high'},
+  {id:84,t:'השלמת ניקיון לאביזרי החשמל בדירה',c:'electrical',a:['general'],sev:'cosmetic'},
+  {id:85,t:'סימון/שיוך למתגים בלוח החשמל, סגירת מרווחים בארון החשמל',c:'electrical',a:['general'],img:'35',sev:'high'},
+  {id:86,t:'חוסר מישוריות ואחידות בהתקנת אביזרי החשמל',c:'electrical',a:['masterBedroom','kidsBedroom','living','safeRoom'],img:'35',sev:'medium'},
+  {id:87,t:'פגיעות ע"ג דוד החשמל - יש לוודא תקינות',c:'electrical',a:['laundry'],img:'35',sev:'high'},
+  {id:88,t:'טרם הותקנו כל אביזרי החשמל',c:'electrical',a:['general'],sev:'high'},
+  {id:89,t:'אביזרי חשמל ומיזוג אינם מחוזקים היטב לקירות ולתקרות',c:'electrical',a:['general'],img:'35',sev:'high'},
+
+  {id:90,t:'טרם הותקנו כל הכלים הסניטריים והברזים',c:'misc',a:['generalBath','masterBath','kitchen'],img:'38-42',sev:'high'},
+  {id:91,t:'לאטום מרווחים מסביב לברזים, כלים סניטריים, פתחי הביקורת והניקוז',c:'misc',a:['generalBath','masterBath'],img:'38-42',sev:'high'},
+  {id:92,t:'יש להחליף צינור גמיש/שרשורי בחדרי הרחצה',c:'misc',a:['generalBath','masterBath'],img:'38-42',sev:'high'},
+  {id:93,t:'שריטות וכתמים ע"ג האמבטיה בחדר רחצה כללי',c:'misc',a:['generalBath'],img:'38-42',sev:'low'},
+  {id:94,t:'כיוונים ותיאום נדרשים לארונות המטבח וחדרי הרחצה',c:'misc',a:['kitchen','generalBath','masterBath'],sev:'medium'},
+  {id:95,t:'יש להשלים ניקיון בארונות חדרי הרחצה והמטבח',c:'misc',a:['kitchen','generalBath','masterBath'],sev:'cosmetic'},
+  {id:96,t:'טרם הסתיימו עבודות המטבח - השלמת שיש וחיפוי קירות',c:'misc',a:['kitchen'],img:'38-42',sev:'high'},
+  {id:97,t:'יש להסיר כיסויים מהספרינקלרים',c:'misc',a:['general'],sev:'medium'},
+  {id:98,t:'טרם בוצעה הנמכת תקרה/גמר בחדר רחצה כללי',c:'misc',a:['generalBath'],img:'38-42',sev:'high'},
+  {id:99,t:'לא ניתן להתקין חבלי כביסה במסתור הכביסה - חסום ע"י דוד החשמל',c:'misc',a:['laundry'],img:'38-42',sev:'high'},
+  {id:100,t:'יש להשלים ניקיון, שילוט אזהרה, מוטות אופקיים במסתור הכביסה',c:'misc',a:['laundry'],sev:'medium'},
+  {id:101,t:'יש להנמיך את פתח הניקוז, להגביה צנרות המים במסתור הכביסה',c:'misc',a:['laundry'],img:'38-42',sev:'high'},
+  {id:102,t:'יש לסגור מרווחים/פתחים בחיבורי הצנרות בתקרת מסתור הכביסה',c:'misc',a:['laundry'],sev:'medium'},
+  {id:103,t:'לא בוצע חריץ אף מים בתקרת מסתור הכביסה',c:'misc',a:['laundry'],sev:'high'},
+  {id:104,t:'ארונות המטבח לא תואמים את התוכנית - יש לבצע שינויים',c:'misc',a:['kitchen'],img:'38-42',sev:'high'},
+  {id:105,t:'שאריות פסולת בניה בפתחי הביקורת והניקוז - יש לנקות',c:'misc',a:['general'],img:'38-42',sev:'high'},
+  {id:106,t:'לנקות את פנים הצנרת ברצפת הדירה משאריות חומרי בנייה',c:'misc',a:['general'],sev:'high'},
+];
+
+let S = { view:'category', catF:null, areaF:null, statusF:'all', sevF:'all', q:'', st:{}, notes:{}, sevs:{}, exp:new Set() };
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('bb45') || '{}');
+    S.st = s.st || {}; S.notes = s.notes || {}; S.sevs = s.sevs || {};
+  } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem('bb45', JSON.stringify({st:S.st, notes:S.notes, sevs:S.sevs})); } catch(e) {}
+}
+function gs(id) { return S.st[id] || 'pending'; }
+function gv(id) { return S.sevs[id] || defects.find(d=>d.id===id)?.sev || 'medium'; }
+
+function setSt(id, s) { S.st[id] = S.st[id]===s ? 'pending' : s; save(); render(); }
+function setSev(id, v) { S.sevs[id] = v; save(); render(); }
+function setNote(id, v) { S.notes[id] = v; save(); }
+function toggle(id) { S.exp.has(id) ? S.exp.delete(id) : S.exp.add(id); render(); }
+function cycle(id) { const c=gs(id); S.st[id] = c==='pending'?'done':c==='done'?'partial':'pending'; save(); render(); }
+
+function setView(v) {
+  S.view=v; S.catF=null; S.areaF=null;
+  document.querySelectorAll('.t-btn').forEach(b => b.classList.toggle('active', b.dataset.v===v));
+  updFilters(); render();
+}
+function setStatusFilter(s) {
+  S.statusF=s;
+  document.querySelectorAll('.st-chip').forEach(b => { b.className='st-chip'; if(b.dataset.s===s) b.classList.add('on-'+s); });
+  render();
+}
+function setSevFilter(s) {
+  S.sevF=s;
+  document.querySelectorAll('.sev-chip').forEach(b => { b.className='sev-chip'; if(b.dataset.s===s) b.classList.add('on-'+s); });
+  render();
+}
+
+function updFilters() {
+  const r = document.getElementById('filterRow'); r.innerHTML = '';
+  const fd = filtered();
+  if (S.view==='category') {
+    Object.entries(CATS).forEach(([k,v])=>{
+      const c=fd.filter(d=>d.c===k).length, ch=document.createElement('button');
+      ch.className='chip'+(S.catF===k?' on':'');
+      ch.innerHTML=`${v.i} ${v.n} <span class="cnt">${c}</span>`;
+      ch.onclick=()=>{ S.catF=S.catF===k?null:k; updFilters(); render(); };
+      r.appendChild(ch);
+    });
+  } else if (S.view==='area') {
+    Object.entries(AREAS).forEach(([k,v])=>{
+      const c=fd.filter(d=>d.a.includes(k)).length;
+      if(!c && S.areaF!==k) return;
+      const ch=document.createElement('button');
+      ch.className='chip'+(S.areaF===k?' on':'');
+      ch.innerHTML=`${v.i} ${v.n} <span class="cnt">${c}</span>`;
+      ch.onclick=()=>{ S.areaF=S.areaF===k?null:k; updFilters(); render(); };
+      r.appendChild(ch);
+    });
+  } else if (S.view==='severity') {
+    Object.entries(SEVS).forEach(([k,v])=>{
+      const c=fd.filter(d=>gv(d.id)===k).length;
+      const ch=document.createElement('button');
+      ch.className='chip'+(S.catF===k?' on':'');
+      ch.innerHTML=`${v.i} ${v.n} <span class="cnt">${c}</span>`;
+      ch.onclick=()=>{ S.catF=S.catF===k?null:k; updFilters(); render(); };
+      r.appendChild(ch);
+    });
+  }
+}
+
+function filtered() {
+  let f = defects;
+  if (S.q) { const q=S.q.toLowerCase(); f=f.filter(d=>d.t.toLowerCase().includes(q)); }
+  if (S.statusF!=='all') f=f.filter(d=>gs(d.id)===S.statusF);
+  if (S.sevF!=='all') f=f.filter(d=>gv(d.id)===S.sevF);
+  return f;
+}
+
+function pp(s) {
+  const p=[]; if(!s) return p;
+  s.split(',').forEach(x => { x=x.trim(); if(x.includes('-')){const[a,b]=x.split('-').map(Number);for(let i=a;i<=b;i++)p.push(i);}else p.push(+x); });
+  return p;
+}
+
+function ico(s) { return s==='done'?'&#10003;':s==='partial'?'&#189;':''; }
+
+function ri(d) {
+  const s=gs(d.id), sv=gv(d.id), note=S.notes[d.id]||'', ex=S.exp.has(d.id);
+  const an=d.a.map(a=>AREAS[a]?.n||a).join(', ');
+  let th='';
+  if(d.img && ex) {
+    const pgs=pp(d.img);
+    th=`<div class="thumbs">${pgs.map(p=>`<div class="thumb" onclick="showImg(${d.id})"><img src="images/page_${p}.png" loading="lazy" alt="עמ' ${p}"><div class="th-lbl">עמ' ${p}</div></div>`).join('')}</div>`;
+  }
+  return `<div class="di">
+    <div class="di-main" onclick="toggle(${d.id})">
+      <div class="di-ico ${s}" onclick="event.stopPropagation();cycle(${d.id})">${ico(s)}</div>
+      <div class="di-body">
+        <div class="di-txt ${s==='done'?'done':''}">${d.t}</div>
+        <div class="di-tags">
+          <span class="tag sev-${sv}">${SEVS[sv]?.i||''} ${SEV_T[sv]||sv}</span>
+          ${S.view!=='category'?`<span class="tag cat">${CATS[d.c].i} ${CATS[d.c].n}</span>`:''}
+          ${S.view!=='area'?`<span class="tag area">${an}</span>`:''}
+          ${d.img?`<span class="tag img" onclick="event.stopPropagation();showImg(${d.id})">📷 עמ' ${d.img}</span>`:''}
+        </div>
+        ${note?`<div class="di-note">📝 ${note}</div>`:''}
+      </div>
+    </div>
+    ${ex?`<div class="di-expand">
+      <div class="di-actions">
+        <button class="abtn tr ${s==='done'?'on':''}" onclick="setSt(${d.id},'done')">✓ טופלה</button>
+        <button class="abtn pt ${s==='partial'?'on':''}" onclick="setSt(${d.id},'partial')">◐ חלקית</button>
+        ${s!=='pending'?`<button class="abtn rs" onclick="setSt(${d.id},'pending')">↩ איפוס</button>`:''}
+        ${d.img?`<button class="abtn im" onclick="showImg(${d.id})">📷 הגדל</button>`:''}
+        <select class="sev-select" onchange="setSev(${d.id},this.value)">
+          <option value="critical" ${sv==='critical'?'selected':''}>🔴 קריטי</option>
+          <option value="high" ${sv==='high'?'selected':''}>🟠 גבוה</option>
+          <option value="medium" ${sv==='medium'?'selected':''}>🟡 בינוני</option>
+          <option value="low" ${sv==='low'?'selected':''}>🟢 נמוך</option>
+          <option value="cosmetic" ${sv==='cosmetic'?'selected':''}>⚪ קוסמטי</option>
+        </select>
+      </div>
+      <textarea class="note-in" rows="2" placeholder="הוסף הערה..." oninput="setNote(${d.id},this.value)">${note}</textarea>
+      ${th}
+    </div>`:''}
+  </div>`;
+}
+
+function render() {
+  const el=document.getElementById('content'), fd=filtered();
+  const tot=defects.length, dn=defects.filter(d=>gs(d.id)==='done').length, pt=defects.filter(d=>gs(d.id)==='partial').length, pn=tot-dn-pt;
+  const pct=Math.round(((dn+pt*.5)/tot)*100);
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('pPct').textContent=pct+'% הושלם';
+  document.getElementById('pCnt').textContent=`${dn+pt}/${tot} לקויות`;
+  document.getElementById('sPend').textContent=pn+' ממתינות';
+  document.getElementById('sDone').textContent=dn+' טופלו';
+  document.getElementById('sPart').textContent=pt+' חלקית';
+
+  let h=`<div class="cards"><div class="card pc"><div class="n">${pn}</div><div class="l">ממתינות</div></div><div class="card dc"><div class="n">${dn}</div><div class="l">טופלו</div></div><div class="card hc"><div class="n">${pt}</div><div class="l">חלקית</div></div></div>`;
+
+  if(!fd.length){ h+=`<div class="empty"><div class="ei">🔍</div><p>לא נמצאו לקויות</p></div>`; el.innerHTML=h; return; }
+
+  if(S.view==='category') {
+    const cs=S.catF?{[S.catF]:CATS[S.catF]}:CATS;
+    Object.entries(cs).forEach(([k,v])=>{
+      const cd=fd.filter(d=>d.c===k); if(!cd.length)return;
+      const cdn=cd.filter(d=>gs(d.id)==='done').length+cd.filter(d=>gs(d.id)==='partial').length;
+      h+=`<div class="sec"><div class="sec-h" onclick="togSec('c-${k}')"><div class="sec-t"><span>${v.i}</span> ${v.n}</div><div><span class="sec-c">${cdn}/${cd.length}</span> <span class="sec-arr" id="arr-c-${k}">▲</span></div></div><div class="d-list" id="c-${k}">${cd.map(ri).join('')}</div></div>`;
+    });
+  } else if(S.view==='area') {
+    const as=S.areaF?{[S.areaF]:AREAS[S.areaF]}:AREAS;
+    Object.entries(as).forEach(([k,v])=>{
+      const ad=fd.filter(d=>d.a.includes(k)); if(!ad.length)return;
+      const adn=ad.filter(d=>gs(d.id)==='done').length+ad.filter(d=>gs(d.id)==='partial').length;
+      h+=`<div class="area-sec"><div class="area-h" onclick="togSec('a-${k}')"><span>${v.i}</span><span class="a-name">${v.n}</span><span class="a-cnt">${adn}/${ad.length}</span><span class="sec-arr" id="arr-a-${k}">▲</span></div><div class="area-d" id="a-${k}">${ad.map(ri).join('')}</div></div>`;
+    });
+  } else if(S.view==='severity') {
+    const sevOrder = ['critical','high','medium','low','cosmetic'];
+    const svs = S.catF ? [S.catF] : sevOrder;
+    svs.forEach(k=>{
+      const sv=SEVS[k]; if(!sv) return;
+      const sd=fd.filter(d=>gv(d.id)===k); if(!sd.length)return;
+      const sdn=sd.filter(d=>gs(d.id)==='done').length+sd.filter(d=>gs(d.id)==='partial').length;
+      h+=`<div class="sec"><div class="sec-h" onclick="togSec('s-${k}')"><div class="sec-t"><span>${sv.i}</span> ${sv.n}</div><div><span class="sec-c">${sdn}/${sd.length}</span> <span class="sec-arr" id="arr-s-${k}">▲</span></div></div><div class="d-list" id="s-${k}">${sd.map(ri).join('')}</div></div>`;
+    });
+  } else {
+    h+=`<div class="sec"><div class="d-list" style="border-radius:var(--radius);border:1px solid var(--border);">${fd.map(ri).join('')}</div></div>`;
+  }
+  el.innerHTML=h;
+}
+
+function togSec(id) {
+  const el=document.getElementById(id), ar=document.getElementById('arr-'+id);
+  if(el){const h=el.style.display==='none';el.style.display=h?'':'none';if(ar)ar.classList.toggle('hide',!h);}
+}
+
+function showImg(id) {
+  const d=defects.find(x=>x.id===id); if(!d||!d.img) return;
+  const m=document.getElementById('imgModal'),b=document.getElementById('moBody'),t=document.getElementById('moTitle');
+  t.textContent=d.t.substring(0,70)+(d.t.length>70?'...':'');
+  const pgs=pp(d.img);
+  b.innerHTML=`<div class="mo-imgs">${pgs.map(p=>`<div class="mo-pg"><img src="images/page_${p}.png" alt="עמוד ${p}"><div class="pg-lbl">עמוד ${p} מתוך הדוח</div></div>`).join('')}</div>`;
+  m.classList.add('show');
+}
+function closeMo() { document.getElementById('imgModal').classList.remove('show'); }
+
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  const rows = [];
+  Object.entries(CATS).forEach(([ck,cv])=>{
+    rows.push({'מס\'':'','תיאור הלקויה':'','קטגוריה':cv.i+' '+cv.n,'אזור':'','חומרה':'','סטטוס':'','הערות':'','עמודים בדוח':''});
+    defects.filter(d=>d.c===ck).forEach(d=>{
+      const st=gs(d.id), sv=gv(d.id);
+      rows.push({
+        'מס\'':d.id,
+        'תיאור הלקויה':d.t,
+        'קטגוריה':cv.n,
+        'אזור':d.a.map(a=>AREAS[a]?.n||a).join(', '),
+        'חומרה':SEV_T[sv]||sv,
+        'סטטוס':STATUS_T[st]||'ממתינה',
+        'הערות':S.notes[d.id]||'',
+        'עמודים בדוח':d.img||''
+      });
+    });
+    rows.push({'מס\'':'','תיאור הלקויה':'','קטגוריה':'','אזור':'','חומרה':'','סטטוס':'','הערות':'','עמודים בדוח':''});
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows, {header:['מס\'','תיאור הלקויה','קטגוריה','אזור','חומרה','סטטוס','הערות','עמודים בדוח']});
+  ws['!cols']=[{wch:5},{wch:55},{wch:16},{wch:28},{wch:10},{wch:14},{wch:30},{wch:10}];
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let R=range.s.r;R<=range.e.r;R++){
+    const cellA = ws[XLSX.utils.encode_cell({r:R,c:0})];
+    const cellC = ws[XLSX.utils.encode_cell({r:R,c:2})];
+    if(cellC && cellC.v && !cellA?.v && R>0){
+      for(let C=0;C<=range.e.c;C++){
+        const addr = XLSX.utils.encode_cell({r:R,c:C});
+        if(!ws[addr]) ws[addr]={t:'s',v:''};
+        ws[addr].s = {font:{bold:true,sz:13},fill:{fgColor:{rgb:'D0E4F5'}},alignment:{horizontal:'right'}};
+      }
+    }
+  }
+  XLSX.utils.book_append_sheet(wb,ws,'לקויות מפורט');
+
+  const tot=defects.length, dn=defects.filter(d=>gs(d.id)==='done').length, pt=defects.filter(d=>gs(d.id)==='partial').length;
+  const sumRows=[
+    {'':'דוח מעקב בדק בית - דירה 45 פינסקר',' ':''},
+    {'':'יהודה לייב פינסקר 47 א\', ראשון לציון',' ':'משפ\' אזולאי'},
+    {'':'תאריך הפקה',' ':new Date().toLocaleDateString('he-IL')},
+    {'':'',' ':''},
+    {'':'סה"כ לקויות',' ':tot},
+    {'':'טופלו',' ':dn},
+    {'':'טופלו חלקית',' ':pt},
+    {'':'ממתינות',' ':tot-dn-pt},
+    {'':'אחוז השלמה',' ':Math.round(((dn+pt*.5)/tot)*100)+'%'},
+    {'':'',' ':''},
+    {'':'חלוקה לפי חומרה',' ':''},
+  ];
+  Object.entries(SEVS).forEach(([k,v])=>{
+    const cnt=defects.filter(d=>gv(d.id)===k).length;
+    const done=defects.filter(d=>gv(d.id)===k&&gs(d.id)==='done').length;
+    sumRows.push({'':v.i+' '+v.n,' ':`${done}/${cnt} טופלו`});
+  });
+  const ws2=XLSX.utils.json_to_sheet(sumRows);
+  ws2['!cols']=[{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,ws2,'סיכום');
+
+  const catRows=[]; const areaRows=[];
+  Object.entries(CATS).forEach(([k,v])=>{
+    const cd=defects.filter(d=>d.c===k);
+    catRows.push({'קטגוריה':v.n,'סה"כ':cd.length,'טופלו':cd.filter(d=>gs(d.id)==='done').length,'חלקית':cd.filter(d=>gs(d.id)==='partial').length,'ממתינות':cd.filter(d=>gs(d.id)==='pending').length});
+  });
+  Object.entries(AREAS).forEach(([k,v])=>{
+    const ad=defects.filter(d=>d.a.includes(k)); if(!ad.length)return;
+    areaRows.push({'אזור':v.n,'סה"כ':ad.length,'טופלו':ad.filter(d=>gs(d.id)==='done').length,'חלקית':ad.filter(d=>gs(d.id)==='partial').length,'ממתינות':ad.filter(d=>gs(d.id)==='pending').length});
+  });
+  const ws3=XLSX.utils.json_to_sheet(catRows);ws3['!cols']=[{wch:20},{wch:8},{wch:8},{wch:8},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws3,'לפי קטגוריה');
+  const ws4=XLSX.utils.json_to_sheet(areaRows);ws4['!cols']=[{wch:22},{wch:8},{wch:8},{wch:8},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws4,'לפי אזור');
+
+  XLSX.writeFile(wb,`bedek-bait-45-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function importExcel(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const wsName = wb.SheetNames.find(n=>n.includes('לקויות')) || wb.SheetNames[0];
+      const ws = wb.Sheets[wsName];
+      const data = XLSX.utils.sheet_to_json(ws);
+
+      let imported = 0;
+      data.forEach(row => {
+        const id = row["מס'"] || row['מס'];
+        if(!id || typeof id !== 'number') return;
+        const d = defects.find(x=>x.id===id);
+        if(!d) return;
+
+        const st = row['סטטוס'];
+        if(st) {
+          if(st.includes('טופלה חלקית') || st.includes('חלקית')) S.st[id] = 'partial';
+          else if(st.includes('טופלה')) S.st[id] = 'done';
+          else S.st[id] = 'pending';
+        }
+
+        const sev = row['חומרה'];
+        if(sev) {
+          const sevMap = {'קריטי':'critical','גבוה':'high','בינוני':'medium','נמוך':'low','קוסמטי':'cosmetic'};
+          if(sevMap[sev]) S.sevs[id] = sevMap[sev];
+        }
+
+        const note = row['הערות'];
+        if(note && typeof note === 'string' && note.trim()) S.notes[id] = note.trim();
+
+        imported++;
+      });
+
+      save(); render(); updFilters();
+      alert(`יובאו בהצלחה ${imported} לקויות`);
+    } catch(err) {
+      alert('שגיאה בייבוא הקובץ: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetAll() {
+  if(confirm('האם לאפס את כל הסטטוסים, החומרות וההערות?')) {
+    S.st={}; S.notes={}; S.sevs={}; save(); render();
+  }
+}
+
+document.getElementById('searchBox').addEventListener('input', e=>{ S.q=e.target.value; render(); });
+document.getElementById('imgModal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeMo(); });
+
+load(); updFilters(); render();
+</script>
+</body>
+</html>
